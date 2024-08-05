@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Invoice Processing Automation</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin-top: 50px;
+      }
+      .judul {
+        text-align: center;
+      }
+      #countdown {
+        font-size: 5em;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      input {
+        width: 50px;
+      }
+      .button-timer {
+        text-align: center;
+        margin-top: 30px;
+      }
+      .inp-timer {
+        justify-content: center;
+        text-align: center;
+      }
+      button {
+        margin: 5px;
+        padding: 10px 20px;
+        font-size: 1em;
+        color: aliceblue;
+        border-radius: 3px;
+      }
+      button#startbtn {
+        background-color: green;
+      }
+      button#stopbtn {
+        background-color: darkred;
+      }
+      button#resetbtn {
+        background-color: skyblue;
+      }
+      button#pausebtn {
+        background-color: lightyellow;
+        color: orangered;
+      }
+    </style>
+    <script>
+      let timerInterval;
+      let paused = false;
+
+      function startTimer() {
+        const hours = document.getElementById('hours').value;
+        const minutes = document.getElementById('minutes').value;
+        const seconds = document.getElementById('seconds').value;
+        const totalSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds);
+
+        fetch('/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `hours=${hours}&minutes=${minutes}&seconds=${seconds}`,
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+            startCountdown(totalSeconds);
+          });
+      }
+
+      function pauseTimer() {
+        paused = !paused;
+        fetch('/pause', { method: 'POST' })
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+            if (paused) {
+              clearInterval(timerInterval);
+            } else {
+              const countdownText = document.getElementById('countdown').textContent;
+              const [hours, minutes, seconds] = countdownText.split(':').map(Number);
+              const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+              startCountdown(totalSeconds);
+            }
+          });
+      }
+
+      function stopTimer() {
+        clearInterval(timerInterval);
+        fetch('/stop', { method: 'POST' })
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+          });
+      }
+
+      function resetTimer() {
+        clearInterval(timerInterval);
+        fetch('/reset', { method: 'POST' })
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+            updateCountdownDisplay(0);
+          });
+      }
+
+      function startCountdown(duration) {
+        let remainingTime = duration;
+
+        timerInterval = setInterval(() => {
+          if (remainingTime <= 0) {
+            clearInterval(timerInterval);
+            return;
+          }
+
+          updateCountdownDisplay(remainingTime);
+          remainingTime--;
+
+          if (remainingTime % 60 === 0) {
+            syncWithServer();
+          }
+        }, 1000);
+      }
+
+      function updateCountdownDisplay(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        document.getElementById('countdown').textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+
+      function syncWithServer() {
+        fetch('/status')
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+            updateCountdownDisplay(data.time_remaining);
+          });
+      }
+    </script>
+  </head>
+  <body>
+    <h1 class="judul">Invoice Processing Automation</h1>
+    <div id="countdown">00:00:00</div>
+    <div class="inp-timer">
+      <label for="hours">Hours:</label>
+      <input type="number" id="hours" name="hours" min="0" value="0" />
+      <label for="minutes">Minutes:</label>
+      <input type="number" id="minutes" name="minutes" min="0" value="0" />
+      <label for="seconds">Seconds:</label>
+      <input type="number" id="seconds" name="seconds" min="0" value="0" />
+    </div>
+    <div class="button-timer">
+      <button id="pausebtn" onclick="pauseTimer()">Pause/Resume</button>
+      <button id="startbtn" onclick="startTimer()">Start</button>
+      <button id="stopbtn" onclick="stopTimer()">Stop</button>
+      <button id="resetbtn" onclick="resetTimer()">Reset</button>
+    </div>
+  </body>
+</html>
