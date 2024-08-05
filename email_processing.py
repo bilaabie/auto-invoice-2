@@ -36,7 +36,7 @@ def process_email():
                 images = convert_pdf_to_jpeg_in_memory(attachment)
 
                 # Save PDF to Google Drive
-                file_id = save_attachment_to_drive(attachment, part.get_filename(), DRIVE_FOLDER_ID)
+                # file_id = save_attachment_to_drive(attachment, part.get_filename(), DRIVE_FOLDER_ID)
 
                 for image in images:
                     output_str = gemini_output(image, SYSTEM_PROMPT, USER_PROMPT)
